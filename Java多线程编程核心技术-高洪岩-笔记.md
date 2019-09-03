@@ -636,6 +636,12 @@ thread.interrupt()中断线程
   lock.writeLock().lock();
   ```
 
+- 应用
+
+  ```
+  1.rocketmq，nameserver路由表的注册和删除用到了，读性能高。
+  ```
+
 ## Timer定时器
 
 - 内部实现--其实就是封装了一下Thread和Runnable啥的
