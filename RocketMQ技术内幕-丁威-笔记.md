@@ -529,11 +529,16 @@ DefaultMessageStore{
   ```
   MQClientInstance中启动了PullMessageService:
   
+  三步骤：
+  1.客户端封装消息拉取请求
+  2.服务器查找并返回消息
+  3.客户端处理返回的消息
+  
   基本流程：
   1.客户端封装消息拉取请求
   封装为ProcessQueue对象
   
-  2.进行消息拉取流控
+  进行消息拉取流控
   ProcessQuquq处理的消息条数超过threshold=1000就触发流控，放弃本次拉任务，放入延迟任务中
   
   pullMessageService.pullMessage(pullRequest);>
@@ -541,7 +546,16 @@ DefaultMessageStore{
   pullKernelImpl->
   mQClientAPIImpl.RequestCode.PULL_MESSAGE 同步 异步两种->
   
-  3.
+  2.Broker查找消息并返回
+  PullMessageProcessor#processRequest->
+  
+  messageStore获取消息->
+  
+  返回response到客户端
+  
+  3.客户端处理返回的消息
+  todo 149页
+  
   ```
 
 ## 消息过滤模式
