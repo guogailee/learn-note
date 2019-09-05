@@ -422,3 +422,135 @@ DefaultMessageStore{
   
   transientStorePoolEnable允许短暂存储false的情况：
   ```
+
+## 过期文件删除机制
+
+- 非当前写文件72小时以后被认为过期，不关心消费没有，删除
+
+- DefaultMessageStore.start->
+
+  ```
+  scheduleAtFixedRate：DefaultMessageStore.this.cleanFilesPeriodically();
+  ```
+
+## 消费者启动过程
+
+- 消费入口
+
+  ```
+      public static void main(String[] args) throws MQClientException {
+          DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_3");
+  
+          consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+  
+          consumer.subscribe("TopicTest", "TagA || TagC || TagD");
+  
+          consumer.registerMessageListener(new MessageListenerOrderly() {
+              AtomicLong consumeTimes = new AtomicLong(0);
+  
+              @Override
+              public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
+                  context.setAutoCommit(true);
+                  System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+                  this.consumeTimes.incrementAndGet();
+                  if ((this.consumeTimes.get() % 2) == 0) {
+                      return ConsumeOrderlyStatus.SUCCESS;
+                  } else if ((this.consumeTimes.get() % 3) == 0) {
+                      return ConsumeOrderlyStatus.ROLLBACK;
+                  } else if ((this.consumeTimes.get() % 4) == 0) {
+                      return ConsumeOrderlyStatus.COMMIT;
+                  } else if ((this.consumeTimes.get() % 5) == 0) {
+                      context.setSuspendCurrentQueueTimeMillis(3000);
+                      return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+                  }
+  
+                  return ConsumeOrderlyStatus.SUCCESS;
+              }
+          });
+  
+          consumer.start();
+          System.out.printf("Consumer Started.%n");
+      }
+  ```
+
+- 数据结构
+
+  ```
+  DefaultMQPushConsumer implements MQPushConsumer{
+  	//属性,委托给defaultMQPushConsumerImpl来实现
+      DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
+  }
+  
+  MQPushConsumer extends MQConsumer{}
+  ```
+
+- 消费者启动流程
+
+  ```
+  consumer.start()->
+  
+  defaultMQPushConsumerImpl.start()->
+  
+  copySubscription()：构建主题订阅信息，有两个来源，一个是defaultMQPushConsumer.getSubscription()方法，一个是订阅重试主题，消息重试是以消费组为单位的->
+  
+  初始化MQClientInstance，消息重新负载实例->
+  
+  初始化消息进度offsetStore，集群消费消息进度保存在broker上，广播消费消息进度保存在消费端本地->
+  
+  创建消费线程->
+  
+  向MQClientInstance注册消费者->
+  
+  启动MQClientInstance实例->
+  
+  ```
+
+- 生产者启动流程 vs 消费者启动流程
+
+  ```
+  跟Producer的启动流程设计思路神似，最终都委托给MQClientInstance->MQClientAPIImpl->RemotingClient，生产者和消费者都属于client，broker属于server，所以broker调用的是remotingServer
+  ```
+
+  ```
+  在一个 NM 中的 所有消费者、生产者持有同一个 MQClientlnstance, MQClientlnstance 只会启动一次。
+  ```
+
+## 消费模式
+
+- 集群模式：主题下的同一条消息只允许被其中一个消费者消费
+- 广播模式：主题下的同一条消息将被集群内的所有消费者消费一次
+
+## 消息服务器和消费者消息传送方式
+
+- 拉模式
+
+- 推模式（封装了拉）
+
+  ```
+  MQClientInstance中启动了PullMessageService:
+  
+  基本流程：
+  1.客户端封装消息拉取请求
+  封装为ProcessQueue对象
+  
+  2.进行消息拉取流控
+  ProcessQuquq处理的消息条数超过threshold=1000就触发流控，放弃本次拉任务，放入延迟任务中
+  
+  pullMessageService.pullMessage(pullRequest);>
+  efaultMQPushConsumerImpl.pullMessage(pullRequest)->
+  pullKernelImpl->
+  mQClientAPIImpl.RequestCode.PULL_MESSAGE 同步 异步两种->
+  
+  3.
+  ```
+
+## 消息过滤模式
+
+- 表达式模式
+- 类过滤模式
+
+## 顺序消费
+
+- 局部顺序消费：支持同一个消息队列上的消息顺序消费
+- 全局顺序消费：不支持全局顺序消费，如果要实现某一个主题的全局顺序消费，可以将该主题的队列数设置为1，牺牲高可用性
+
