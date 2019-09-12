@@ -265,6 +265,8 @@ tools：
   2.之后流程跟单条消息一样
   
   ```
+  
+- 优势：减少网络调用次数，提高网络传输效率
 
 ## 消息存储整体流程
 
@@ -536,10 +538,10 @@ DefaultMessageStore{
   
   基本流程：
   1.客户端封装消息拉取请求
-  封装为ProcessQueue对象
+  
   
   进行消息拉取流控
-  ProcessQuquq处理的消息条数超过threshold=1000就触发流控，放弃本次拉任务，放入延迟任务中
+  ProcessQuque处理的消息条数超过threshold=1000就触发流控，放弃本次拉任务，放入延迟任务中
   
   pullMessageService.pullMessage(pullRequest);>
   efaultMQPushConsumerImpl.pullMessage(pullRequest)->
@@ -554,17 +556,250 @@ DefaultMessageStore{
   返回response到客户端
   
   3.客户端处理返回的消息
-  todo 149页
+  
+  将拉取到的消息存储queue->
+  processQueue.putMessage(pullResult.getMsgFoundList())->
+  
+  processQueue：消息处理队列。从broker拉取到的消息先存储到processQueue，再提交到消费者消费池进行消费，消息拉取和消息消费解耦
+  
+  异步提交消息到消费者线程处理:consumeMessageService.submitConsumeRequest()->
+  
+  
   
   ```
 
+## 消息消费过程
+
+```
+PullMessageService：从远端服务器拉取到消息后存入到ProcessQueue，提交消息消费到ComsumeMessageService
+
+ComsumeMessageService有两个实现类：并发 vs 有序
+
+消费过程：ComsumeMessageService.run()
+
+
+```
+
+## ProcessQueue实现机制
+
+- 
+
 ## 消息过滤模式
 
+- 过滤入口：在消费端订阅的时候添加过滤
+
+  ```
+  consumer.subscribe()->
+  
+  构建SubscriptionData->
+  
+  添加到RebalanceImpl的<Topic,SubscriptionData>map中以便进行负载
+  ```
+
 - 表达式模式
+
+  ```
+  TAG模式：
+  🌰：
+  订单基础tag：TAG_ORDER_ALL
+  订单库存tag：TAG_ORDER_STOCK
+  //订单消费者：
+  orderConsumer = new DefaultMQPushConsumer("group_order_sync");
+  orderConsumer.subscribe("topic_order_sync","TAG_ORDER_ALL");
+  //库存消费者：
+  stockConsumer = new DefaultMQPushConsumer("group_order_sync");
+  stockConsumer.subscribe("topic_order_sync","TAG_ORDER_ALL | TAG_ORDER_STOCK");
+  
+  ```
+
+  ```
+  sql92模式：
+  生产：
+  Message msg = new Message("topic","tag","Hello".getBytes());
+  msg.putUserProperty("orderStatus","1");
+  msg.putUserProperty("sellerId","21");
+  producer.send(msg);
+  
+  消费：
+  consumer.subscribe("topic",MessageSelector.bySql("(orderStatus is not null and  orderStatus > 0)"));
+  ```
+
 - 类过滤模式
+
+  ```
+  1.实现MessageFilter接口
+  
+  2.consumer订阅的时候上传MessageFilterImpl代码
+  ```
+
+  
 
 ## 顺序消费
 
 - 局部顺序消费：支持同一个消息队列上的消息顺序消费
 - 全局顺序消费：不支持全局顺序消费，如果要实现某一个主题的全局顺序消费，可以将该主题的队列数设置为1，牺牲高可用性
 
+## 事务消息
+
+- 原理
+
+  ```
+  基于两阶段提交协议和定时事务回查
+  
+  1.业务系统开启本地事务，业务操作，发送prepare消息，结束本地事务
+  
+  2.broker收到prepare的消息，会备份消息放入队列
+  
+  3.broker定时回查业务系统事务状态，根据业务系统事务状态提交或者回滚
+  ```
+
+  ![mq事务](img/mq事务.png)
+
+- 发送过程
+
+  ```
+  TransactionMQProducer.sendMessageInTransaction->
+  
+  DefaultMQProducerImpl.sendMessageInTransaction->
+  
+  //为消息添加属性
+  MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+          MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());->
+  
+  消息发送成功，执行transactionListener.executeLocalTransaction(msg, arg);->
+  
+  //发送结束事务请求code
+  endTransaction->
+  
+  
+  
+  ```
+
+## 消息重试机制
+
+### Producer端重试
+
+- 发消息到broker失败的场景：
+
+  ```
+  网络抖动导致生产者没收到broker端的确认
+  ```
+
+- 如何解决Producer端发送失败
+
+  ```
+  方式：设置发送失败重试次数
+  producer.setRetryTimesWhenSendFailed(3);
+  
+  源码：
+  producer.send(msg)->
+  defaultMQProducerImpl.send(msg)->
+  sendDefaultImpl()->
+  //计算总共发送次数
+  int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
+  //循环调用发送
+  for (; times < timesTotal; times++) {
+  	sendKernelImpl();
+  	switch (communicationMode) {
+  		case SYNC:
+  		if (sendResult.getSendStatus() != SendStatus.SEND_OK) {
+  			if (this.defaultMQProducer.isRetryAnotherBrokerWhenNotStoreOK()) {
+  				//发送失败，重试
+  				continue;
+  			}
+  		}
+  		//发送成功，返回
+  		return sendResult;
+  	}
+  }
+  ```
+
+### Consumer端重试
+
+- 消费失败并发起重试的场景
+
+  ```
+  1.业务消费方返回ConsumeConcurrentlyStatus.RECONSUME_LATER
+  2.业务消费方返回null
+  3.业务消费方抛出异常
+  
+  以上三种情况，broker会发起消息重试，重新投递该消息
+  ```
+
+- Consumer端消费失败重试机制--以ConsumeMessageConcurrentlyService为例
+
+  ```
+  消费消息流程：
+  consumer.start();->
+  defaultMQPushConsumerImpl.start();->
+  PullMessageService从broker端拉到消息提交到ConsumeMessageService->
+  //消费消息请求ConsumeRequest
+  consumeMessageService.submitConsumeRequest()->
+  放入线程池中执行ConsumeRequest.run()->
+  //消费消息，调用业务方的消费处理逻辑
+  listener.consumeMessage(Collections.unmodifiableList(msgs), context);->
+  //处理业务方的返回结果
+  ConsumeMessageConcurrentlyService.this.processConsumeResult()->
+  1.根据消费结果设置ack的值
+  2.如果消费失败，广播模式打印消费错误log，集群模式发送sendMessageBack(),发送成功重试交给broker，发送失败由消费者submitConsumeRequestLater()
+  3.更新消息偏移量
+  sendMessageBack()发送CONSUMER_SEND_MSG_BACK请求到broker->
+  
+  //---分割线---
+  broker重试流程：
+  SendMessageProcessor在broker启动的时候注册->
+  
+  根据CONSUMER_SEND_MSG_BACK code调用consumerSendMsgBack()->
+  //根据request的偏移量从commitlog文件中获取消息
+  1.brokerController.getMessageStore().lookMessageByOffset(requestHeader.getOffset())
+  2.超过了最大重试次数或者延迟级别为0，设置消息的主题为DLQ+ 消费组名称，将消息放入DLQ队列。否则主题名称为RETRY + 消费组名称。
+  //重新发送该消息到commitlog
+  3.brokerController.getMessageStore().putMessage(msgInner)->
+  
+  putMessage()中对延迟消息的处理逻辑->
+  if (msg.getDelayTimeLevel() > 0) {
+  	topic = ScheduleMessageService.SCHEDULE_TOPIC;
+  	//备份原主题名称...
+  }
+  
+  延迟消息处理类
+  ScheduleMessageService
+  ```
+
+- 消费者是如何订阅RETRY + 消费组名称这个主题的？
+
+  ```
+  consumer.start();->
+  defaultMQPushConsumerImpl.start();->
+  copySubscription();->
+  //集群模式订阅消费组的重试主题队列
+  case CLUSTERING:
+  this.rebalanceImpl.getSubscriptionInner().put(retryTopic, subscriptionData);
+  ```
+
+- 多次重试仍旧失败如何解决
+
+  ```
+  根据消息里的MessageExt.reconsumeTimes，超过指定的重试次数后存入db或者记录log，人工处理
+  ```
+
+## 消息队列自选择
+
+- MessageQueueSelector
+
+  ```
+  producer.send(Collection<Message> msgs, MessageQueue messageQueue,long timeout)
+  
+  //按照业务，控制消息队列
+  ```
+
+## 消息中间件的应用场景
+
+- 数据同步解耦
+
+  ```
+  举个例子：
+  创建订单，订单的信息要同步给索引，同步给sass中心，用mq异步，一次发送，多个需要消费该消息的系统监听消费就好。创建订单的系统不需要依赖其他业务系统。
+  ```
+
+  
