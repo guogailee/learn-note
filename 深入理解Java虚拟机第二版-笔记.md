@@ -566,3 +566,71 @@ Full GC：停顿收集
   Major GC/Full GC
   ```
 
+## JDK命令行工具
+
+```
+jdk工具1.6之后默认是开启的
+
+jps
+列出正在运行的虚拟机进程
+
+jstat
+监视虚拟机各种运行状态信息
+
+jmap
+生成堆转存快照
+
+jstack
+生成虚拟机当前时刻线程快照
+```
+
+## JDK可视化工具---（比命令行可视化强大很多）
+
+- JConsole：可视化监控、管理虚拟机的工具
+
+  ```
+  1.启动
+  启动 /bin下的jconsole
+  
+  2.选择一个进程来开始监控
+  
+  3.demo来观看
+  public class OOMObject {
+      private byte[] holder = new byte[64 * 1024];
+  
+  
+      public static void main(String[] args) {
+          List<OOMObject> list = new ArrayList<>();
+          for (int i = 0; i < 1000; i++) {
+              try {
+                  Thread.sleep(50);
+              } catch (InterruptedException e) {
+                  e.printStackTrace();
+              }
+              list.add(new OOMObject());
+          }
+          System.gc();
+      }
+  }
+  
+  4.可视化包含模块
+  
+  ```
+
+- ![jsconsole](img/jsconsole.png)
+
+- VisualVM ：运行监视和故障处理程序、性能分析
+
+  ```
+  1.启动
+  启动/bin下的jvisualvm
+  
+  2.选择一个进程来监控
+  
+  3.很好用的插件：BTrace
+  作用：动态加入原本不存在的代码，可以用于生产环境中的各种调试
+  ```
+
+  ![visualvm](img/visualvm.png)
+
+## 
