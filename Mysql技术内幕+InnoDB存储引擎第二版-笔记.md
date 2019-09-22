@@ -484,7 +484,7 @@ Column 'id' cannot be null
 sql_mode=STRICT_TRANS_TABLES
 ```
 
-### 用触发器来实现约束
+### 用触发器来实现约束-我们一般很少用
 
 ```
 触发器作用：
@@ -513,13 +513,95 @@ end;
 
 ```
 
-### 用外键来实现约束
+### 用外键来实现约束-我们一般很少用
 
 ```
 innoDB存储引擎支持外键约束，MyISAM不支持
 
 但我们一般不定义外键约束
 ```
+
+## 视图-我们一般很少用
+
+### 作用
+
+视图起的作用是实际表的影子，用来充当跟实际表操作的一个中间层，可以做一些校验或者事情，起到安全作用。
+
+### Show tables
+
+可以把视图一起查出来
+
+### 创建视图
+
+```
+create view v_test
+as 
+select * from test where id < 10;
+```
+
+## 分区-我们一般很少用
+
+### 分区的作用
+
+```
+将一个表分解为多个部分管理，在存储引擎的上一层完成的，跟存储引擎无关。
+```
+
+### 支持的分区类型
+
+- RANGE：范围分区
+
+  ```
+  create table t (
+  id int
+  ) engine =innodb
+  PARTITION by range(id)(
+  PARTITION p0 values less than(10),
+  PARTITION p1 values less than(20)
+  );
+  
+  1.启用分区以后，表不再是一个ibd文件，而是2个
+  
+  2.不同的列值会插入不同的分区
+  
+  3.不在分区范围内的值插入会报错，可以定义最大分区，PARTITION p1 values less than maxvalue
+  
+  4.何时使用range分区：
+  按照时间，2008年的一个分区，2009年的一个分区，explain select 2008年的时候会优化到只查询p2008分区
+  ```
+
+- LIST：具体的值列表分区
+
+  ```
+  create table t (
+  a int,
+  b int
+  ) engine =innodb
+  PARTITION by list(b)(
+  PARTITION p0 values in (1,3,5,7,9),
+  PARTITION p1 values in(0,2,4,6,8)
+  );
+  ```
+
+- HASH：根据定义好的分区表达式均匀的分配在n个区间内
+
+  ```
+  create table t (
+  a int,
+  b datetime
+  ) engine =innodb
+  PARTITION by hash(year(b))()
+  partitions 4
+  ;
+  
+  取出b的年份值跟4取模，得到的就是分区index
+  ```
+
+- KEY：跟hash类似
+
+### 子分区
+
+- 在range和list分区的基础上再进行hash/key分区
 
 ## 常用参数配置
 
