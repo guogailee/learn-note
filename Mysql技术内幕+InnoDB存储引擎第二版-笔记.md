@@ -450,6 +450,77 @@ Dynamic
 溢出的临界值是8098长度
 ```
 
+## 关系型数据库的约束
+
+包含：
+
+```
+Primary Key
+Unique Key
+Foreign Key
+Default
+NOT NULL
+```
+
+### 约束的创建
+
+- 表定义时
+- alter table时
+
+### 约束和索引的区别
+
+```
+约束是逻辑概念
+
+索引是物理实现，是一种数据结构
+```
+
+### 约束的作用
+
+```
+在严格模式下，对于insert的数据，mysql会检查输入值，是否满足约束，不满足会报错
+Column 'id' cannot be null
+
+sql_mode=STRICT_TRANS_TABLES
+```
+
+### 用触发器来实现约束
+
+```
+触发器作用：
+在insert update delete之前或者之后执行指定的命令，实现更灵活的约束和额外的动作
+
+创建触发器的语法：
+CREATE TRIGGER trigger_name 
+BEFORE|AFTER
+insert|update|delete
+on table_name 
+for each row;
+
+例子：
+create trigger usercash_update 
+before 
+update 
+on usercash
+for each row
+begin
+if new.cash-old.cash > 0 then
+insert into usercash_err_log
+select old.userid,old.cash,new.cash,now();
+set new.cash = old.cash;
+end if;
+end;
+
+```
+
+### 用外键来实现约束
+
+```
+innoDB存储引擎支持外键约束，MyISAM不支持
+
+但我们一般不定义外键约束
+```
+
 ## 常用参数配置
 
 ```
