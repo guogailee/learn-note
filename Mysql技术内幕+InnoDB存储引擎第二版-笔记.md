@@ -825,7 +825,109 @@ explain select * from buy_log where userid =1 order by buy_date desc limit 3;
 
 ### InnoDB支持全文索引
 
+## mysql中的锁
 
+- InnoDB存储引擎的行级锁
+- 内存缓冲池LRU列表的锁
+- MyISAM存储引擎的表级锁
+
+### InnoDB存储引擎的行级锁
+
+- 共享锁：S lock
+- 排他锁：X lock
+
+![行级锁](img/行级锁.png)
+
+```
+事务T3要获取行r的X锁，需要等待事务T1、T2释放S锁
+```
+
+### InnoDB存储引擎的表级别意向锁
+
+- 意向共享锁 IS lock，事务想要获得一张表某几行的共享锁
+- 意向排他锁 IX lock，事务想要获得一张表某几行的排他锁
+- 意向锁存在的意义？
+
+### 如何查看innoDB的锁情况
+
+- Innodb_trx表：查看事务状态，是否阻塞
+- Innodb_locks表：查看事务对应的锁信息
+- innodb_lock_waits表：查看是哪组事务和锁，阻塞了哪组
+
+### 非锁定读是啥意思
+
+```
+含义：某行加了X锁，查询请求不会被阻塞，通过读undo页里的数据直接返回(跟共享锁和排他锁区分开)
+
+作用：提高并发性
+
+MVCC的由来：由于undo有多次历史记录，所以是多版本的，也就是MVCC，
+multi version concurrency control
+```
+
+### 事务隔离级别和非锁定读的对应关系
+
+| 事务隔离级别                             | 读方式   | 快照版本的选择     |
+| :--------------------------------------- | -------- | ------------------ |
+| repeatable read(mysql默认的事务隔离级别) | 非锁定读 | 事务开始时的undo行 |
+| read committed                           | 非锁定读 | 最新undo行         |
+|                                          |          |                    |
+|                                          |          |                    |
+
+### 锁定读
+
+```
+select ... for update 对读取的行加X锁
+select ... lock in share mode 对读取的行加S锁
+```
+
+###  锁的算法
+
+- Record lock ：单个行记录上的锁
+- Gap lock：间隙锁，锁定一个范围，不包含记录本身
+- Next-key lock:GapLock + Record lock,目的为了解决幻像问题当查询的列是唯一索引的时候，会降级为Record lock
+
+### 幻像问题-不可接受，但是行级锁可以会规避它
+
+- 定义：在同一个事务下，连续执行两次同样的sql，可能导致不同的结果，也就是违背了事务的隔离性，当前事务可以看到其他事务的结果。
+- 如何解决：在repeatable read事务隔离级别下，默认的行锁算法是Next-key lock，也就是间隙锁+行锁，这样范围内的操作都会被阻塞，也就不会产生当前事务看到其他事务的结果。
+
+### 脏读-一般不可接受，所以不能设置为Read uncommitted隔离级别
+
+- 含义：事务对缓冲池中行记录的修改，没有提交的时候，被其他事务读到了，违背了隔离性。
+- 何时会发生：事务隔离级别设置为Read uncommitted的时候
+
+### 不可重复读-可以接受
+
+- 含义：当前事务可以读到其他事务已经提交的结果，但是也违背了隔离性，所以叫不可重复读
+- 何时会发生，事务隔离级别设置为Read committed的时候
+- 如何解决：事务隔离基本设置为Read repeatable，这个时候的锁算法是next-key lock。解决了不可重复读问题，也即幻像问题。
+
+### 为何数据库默认的事务隔离级别是Read repeatable
+
+1. 采用了next-ket lock行锁算法，避免了幻像问题、脏读问题
+
+### 更新丢失了？
+
+- 场景：一个用户在两个终端操作转账，查到的余额都是10000，第一个终端转了9000，第二次终端转了1，最后余额是9999。
+
+- 如何解决？
+
+  1.查询的时候就加排他X锁
+
+  select * from table where user= xxx for update.
+
+  2.乐观锁，利用version号
+
+### 等待锁超时了，事务会回滚么
+
+```
+1.可以通过参数在启动时候设置，innodb_rollback_on_timeout=on
+
+2.默认是off，不会回滚
+
+3.超时机制，innodb_lock_wait_timeout指定
+```
 
 ## 常用参数配置
 
