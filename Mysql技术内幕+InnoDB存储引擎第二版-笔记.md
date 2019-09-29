@@ -825,7 +825,7 @@ explain select * from buy_log where userid =1 order by buy_date desc limit 3;
 
 ### InnoDB支持全文索引
 
-## mysql中的锁
+## mysql中的锁-解决事务的隔离性
 
 - InnoDB存储引擎的行级锁
 - 内存缓冲池LRU列表的锁
@@ -929,6 +929,100 @@ select ... lock in share mode 对读取的行加S锁
 3.超时机制，innodb_lock_wait_timeout指定
 ```
 
+## 事务
+
+- 原子性:a
+- 一致性:c
+- 隔离性:i
+- 持久性:d
+
+```
+innoDB满足ACID
+oracle不满足隔离性，采用的是Read committed数据库隔离级别
+```
+
+### InnoDB支持的事务
+
+- 扁平事务
+- 带有保存点的事务
+- 链事务
+- 分布式事务：所有节点要么都成功，要么都失败
+
+### InnoDB事务的实现原理
+
+- redo-保证了持久性D
+
+  ```
+  事务提交->先将日志写入重做日志缓冲->异步刷到重做日志文件
+  
+  通过innodb_flush_log_at_trx_commit控制何时刷到文件
+  ```
+
+- undo-保证了一致性，当需要回滚事务的时候用undo，另一个作用是MVCC
+
+  ```
+  1.undo产生的时候会伴随着产生redo log
+  ```
+
+- purge
+
+  ```
+  delete 和 update的真正物理操作是延迟在purge中完成的，当时执行的时候只是标记为delete。
+  
+  purge会判断是否还有事务引用，没有就可以真正执行。
+  ```
+
+- group commit
+
+### 事务控制语句
+
+```
+1.默认事务是自动提交的
+
+2.显式开启事务
+begin
+
+3.提交事务
+commit
+
+4.回滚事务
+rollback
+
+5.设置事务隔离级别
+set transaction
+```
+
+### 隐式commit的sql语句有哪些
+
+```
+ddl语句：create alter drop等
+```
+
+### 数据库事务统计 TPS QPS
+
+```
+1.TPS 每秒事务处理的能力
+tps=(commit+rollback)/time
+
+2.QPS 每秒请求数
+```
+
+### 分布式事务
+
+```
+1.XA事务的隔离级别必须是serializable
+
+2.XA事务的组成：
+一个事务管理器+一个应用程序+多个资源管理器
+
+3.XA事务的协议：
+两阶段提交协议
+第一阶段：所有资源管理器告诉事务管理器它们准备好了
+
+```
+
+
+
 ## 常用参数配置
 
 ```
@@ -971,5 +1065,8 @@ alter table table_name drop primary key | drop index index_name;
 
 查看表的索引
 show index from table_name;
+
+设置数据库隔离级别：
+set transaction isolation level XXX;
 ```
 
