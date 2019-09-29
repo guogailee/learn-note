@@ -1018,10 +1018,54 @@ tps=(commit+rollback)/time
 3.XA事务的协议：
 两阶段提交协议
 第一阶段：所有资源管理器告诉事务管理器它们准备好了
+第二阶段：事务管理器告诉资源管理器执行ROLLBACK还是COMMIT
 
+4.单个节点运行分布式事务
+XA start 'a';
+
+insert into z select 11;
+
+XA end 'a';
+
+XA PREPARE 'a';
+
+XA commit 'a';
 ```
 
+### Java事务API支持mysql分布式事务
 
+```
+int ret2 = xaRes2.prepare(xid2);
+int ret1 = xaRes1.prepare(xid1);
+
+if (ret1 == XAResource.XA_OK && ret2 == XAResource.XA_OK) {
+	xaRes1.commit(xid1,false);
+	xaRes2.commit(xid1,false);
+}
+```
+
+### Mysql内部的XA事务
+
+- binlog和重做日志要么都成功，要么都回滚
+
+### 一个不好的事务习惯
+
+- 不好：在循环中提交事务，每一次都会记录一次重做日志
+- 如何改进：在循环开始前就开启事务，所有的循环一次性提交，只会记录一次重做日志
+
+### 事务自动提交
+
+### 长事务
+
+- 如何改进：分解为批量的小事务
+
+## 备份数据
+
+### 备份分类
+
+- 热备份：在线备份
+- 冷备份：停库备份
+- 温备份：在线备份，对当前操作有所影响
 
 ## 常用参数配置
 
