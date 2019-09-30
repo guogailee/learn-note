@@ -1129,4 +1129,129 @@ clinit vs init：类构造器 实例构造器
 
   ![loadclass](img/loadclass.png)
 
-## 
+## 虚拟机的执行引擎
+
+### 执行引擎的表现结果
+
+```
+输入字节码>输出执行结果
+```
+
+### 栈帧-虚拟机支持方法调用和执行的数据结构
+
+![栈帧](img/栈帧.jpeg)
+
+### 局部变量表
+
+```
+1.作用：用于存放方法参数和方法内部定义的局部变量，编译期间大小就存入了Code属性中
+
+2.局部变量必须指定初始值，jvm不会给它赋零值
+```
+
+### 操作数栈
+
+```
+1.栈的深度在编译期存入Code属性中
+
+2.举例子：
+iadd在运行的时候，操作数栈中最接近栈顶的两个元素已经存入了两个int型的数值，当执行iadd指令的时候，会将两个int值出栈并相加，然后将结果入栈
+```
+
+### 动态连接
+
+```
+常量池中的符号引用转换为直接引用
+```
+
+### 方法返回地址
+
+### 方法调用
+
+### 重载，虚拟机是如何确定调用哪个方法的-可做笔试题
+
+```
+重载，通过静态分派，通过参数的静态类型作为判断方法版本的依据，而不是实际类型。
+
+举例子：
+abstract class Human{
+
+}
+Man extends Human{
+
+}
+Woman extends Human{
+
+}
+public void sayHello(Human guy){
+sout("guy");
+} 
+public void sayHello(Man guy){
+sout("man");
+}
+public void sayHello(Woman guy){
+sout("woman");
+}
+psvm{
+//静态类型       动态类型
+Human man = new Man();
+//静态类型       动态类型
+Human woman = new Woman();
+//test重载
+s.sayHello(man);
+s.sayHello(woman);
+}
+//输出
+//guy
+//guy
+```
+
+### 重写，虚拟机是如何确定调用哪个方法的，可做笔试题
+
+```
+重写，通过动态分派，在运行期根据实际类型确定方法执行版本的分派过程。
+
+abstract class Human{
+	protected abstract void sayHello();
+}
+class Man extends Human{
+	@Override
+	protected void sayHello(){
+		sout("man hello");
+	}
+}
+class WoMan extends Human{
+	@Override
+	protected void sayHello(){
+		sout("woman hello");
+	}
+}
+psvm{
+//静态类型       动态类型
+Human man = new Man();
+//静态类型       动态类型
+Human woman = new Woman();
+man.sayHello();
+woman.sayHello();
+}
+//输出
+man hello
+woman hello
+```
+
+### 动态类型指令--动态技术专题todo
+
+```
+invokedynamic
+
+MethodHandle
+
+作用类似，实现动态技术
+```
+
+### 如何执行字节码的
+
+```
+基于栈，指令入栈出栈执行的字节码
+```
+
