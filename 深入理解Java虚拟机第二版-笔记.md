@@ -1058,7 +1058,7 @@ public static final int count = 123;//123的赋值是在准备阶段完成的
 缓存特性：解析完后可以缓存，避免重复解析
 ```
 
-### 初始化
+### 类初始化
 
 ```
 初始化阶段：执行clinit类构造器，不是实例init构造器，按照Object->Parent->Child类构造器依次执行，如果一个类没有静态语句块和静态变量，那就缺省执行类构造器这一步
@@ -1253,5 +1253,118 @@ MethodHandle
 
 ```
 基于栈，指令入栈出栈执行的字节码
+```
+
+## Tomcat的类加载器
+
+### 需要满足
+
+- 部署在同一个服务器上的两个Web应用程序所使用的Java类库可以实现相互隔离，两个不同的应用程序可能依赖同一个第三方类库的不同版本
+- 部署在同一个服务器上的两个web应用程序所使用的类库可以共享，避免重复的类库加载到内存，导致虚拟机方法区膨胀
+- 支持JSP应用的web服务器，需要支持热部署，不用重启应用就可以生效修改后的应用
+
+### Tomcat是如何规划用户类库结构和类加载器的
+
+
+
+![tomcat类加载器](img/tomcat类加载器.png)
+
+```
+1.Common类加载器：
+加载/common/*下的类库，可被tomcat和所有的web应用程序共同使用
+
+2.Catalina类加载器
+加载/server/*下的类库，只可以被tomcat使用，不可以被web应用程序使用
+
+3.Shared类加载器
+加载/shared/*下的类库，可被所有的web应用程序使用，对tomcat不可见
+
+4.WebApp类加载器
+加载/WebApp/WEB-INF/*下的类库，仅仅可以被当前web应用使用
+每一个web应用对应一个类加载器实例
+
+5.Jsp类加载器
+加载jsp
+每一个jsp文件对应一个类加载器实例
+
+如何配置类加载器：
+tomcat.conf/catalina.properties配置文件配置类加载
+server.loader
+share.loader
+```
+
+## OSGI是什么
+
+- open service gateway initiative，基于java语言的动态模块化规范
+- 作用：可以实现应用模块的热插播，只替换并重启部分模块，而不是重启整个应用
+- 类加载器：网状结构，不再是双亲委派模式
+
+## 字节码生成技术
+
+- javac
+- javassist
+- CGLib
+- ASM
+- 动态代理
+
+## 字节码生成技术的应用之动态代理
+
+### 例子
+
+```
+public class DynamicProxyTest {
+    interface IHello {
+        void sayHello();
+    }
+
+    static class Hello implements IHello {
+
+        @Override
+        public void sayHello() {
+            System.out.println("hello world");
+        }
+    }
+
+    static class DynamicProxy implements InvocationHandler {
+        Object originalObj;
+
+        Object bind(Object originalObj){
+            this.originalObj= originalObj;
+            return Proxy.newProxyInstance(originalObj.getClass().getClassLoader(),originalObj.getClass().getInterfaces(),this);
+        }
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            System.out.println("welcome");
+            return method.invoke(originalObj,args);
+        }
+    }
+
+    public static void main(String[] args) {
+        IHello hello = (IHello) new DynamicProxy().bind(new Hello());
+        hello.sayHello();
+    }
+}
+```
+
+### 动态代理的过程
+
+```
+基于接口的动态代理流程:
+1.生成代理类实例:
+IHello hello = Proxy.newProxyInstance(lassLoader loader,Class<?>[] interfaces,InvocationHandler h);
+InvocationHandler的实现类里完成增强原始类的动作
+源码流程：
+验证->
+缓存->
+生成字节码class文件(可以反编译查看文件)->getProxyClass0(loader, intfs)->ProxyClassFactory.apply():ProxyGenerator.generateProxyClass(proxyName, interfaces, accessFlags)->
+获取class文件对应参数为InvocationHandler的构造器->
+构造器生成代理类实例
+
+(正常开发流程，编译为字节码，jvm加载class，走流程加载，验证，解析，类初始化)
+
+2.基于接口调用代理类实例的方法
+hello.sayHello()；
+
+
 ```
 
