@@ -71,7 +71,7 @@ tools：
 
 ## NameServer路由管理
 
-- 路由信息
+- 路由信息-RouteInfoManager
 
   ```
   HashMap<String(topic),List<QueueData>> topicQueueTable;
