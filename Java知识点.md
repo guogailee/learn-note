@@ -200,3 +200,144 @@ put不安全
   默认的：类名+@+哈希值，难以理解。
   ```
 
+## NIO
+
+### NIO
+
+```
+non-blocking io：
+同一个线程：channel读数据到buffer，与此同时，可以做其他事情
+
+同一个线程：写数据到channel，与此同时，可以做其他事情
+```
+
+```
+selectors选择器：
+一个selector可以监视多个channel事件
+```
+
+### 核心组件
+
+**Channel&Buffer**
+
+```
+Channel通道，类似流
+Buffer缓冲区
+
+Channel读数据到Buffer、Buffer写数据到Channel
+
+Channel抽象类：
+FileChannel-对应的有具体的实现类
+DatagramChannel
+SocketChannel
+ServerSocket
+
+Buffer具体类：
+ByteBuffer
+CharBuffer
+DoubleBuffer
+FloatBuffer
+IntBuffer
+LongBuffer
+ShortBuffer
+MappedByteBuffer-特殊
+```
+
+![overview-channels-buffers](img/overview-channels-buffers.png)
+
+Channel和流的区别
+
+```
+Channel是双向的，可以写入channel，也可以从channel读
+流是单向的
+```
+
+Buffer
+
+```
+可以写入数据
+可以从Buffer读数据
+
+如何切换读写模式，通过flip()
+
+读完后需要clean()清除buffer，以继续提供写服务
+
+compact()只会清除已经读的数据，未读的数据不会清掉
+```
+
+Buffer的三个属性
+
+```
+1.Capacity容量
+
+2.Position当前位置 
+
+3.Limit写的限制是容量大小，读的限制是写入了多少数据
+```
+
+如何获取一个Buffer
+
+```
+ByteBuffer buf = ByteBuffer.allocate(int capacity);
+```
+
+如何把数据写入Buffer
+
+```
+channel.read(buf);
+```
+
+Buffer从写模式切换到读模式
+
+```
+flip(){
+	limit = position;
+	position = 0;
+}
+```
+
+如何从内存块Buffer中读数据
+
+```
+int bytesWritten = channel.write(buf);
+```
+
+**Selector**
+
+![selectors](img/selectors.png)
+
+```
+selector允许，一个线程可以处理多个channel
+
+适应场景：聊天程序，少量线程处理多数连接
+```
+
+### 聚集操作
+
+- 聚集从Channel读入Buffer
+
+  ```128
+  ByteBuffer header = ByteBuffer.allocate(128);
+  ByteBuffer body   = ByteBuffer.allocate(1024);
+  
+  ButeBuffer[] bufferArray = {header,body};
+  
+  channel.read(bufferArray);
+  
+  当第一个buffer满了，才会移动到下一个buffer。
+  适合场景：
+  header的大小刚好是固定大小的
+  ```
+
+- 聚集从Buffer写入Channel
+
+  ```
+  ByteBuffer header = ByteBuffer.allocate(128);
+  ByteBuffer body   = ByteBuffer.allocate(1024);
+  
+  ByteBuffer[] bufferArray = {header,body};
+  
+  channel.write(bufferArray);
+  ```
+
+  
