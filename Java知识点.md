@@ -23,18 +23,6 @@
 
 - 使用StopWatch替换
 
-## Semaphore  
-
-## CountDownLatch
-
-- 作用：
-
-- 源码解析：
-
-  ```
-  
-  ```
-
 ## 关键字transient
 
 ## Map接口及其实现类
@@ -59,7 +47,7 @@ put不安全
 
 ```
 数据结构：
-链表
+数组(元素Entry，包含前后指针)+链表
 
 特点：
 键有序，唯一
@@ -340,4 +328,50 @@ selector允许，一个线程可以处理多个channel
   channel.write(bufferArray);
   ```
 
-  
+
+## 线程池
+
+## 多线程
+
+### Synchronized
+
+```
+
+```
+
+### AbstractQueuedSynchronizer
+
+```
+AQS提供了一种实现阻塞锁和一系列依赖FIFO等待队列的同步器的框架
+
+许多同步类实现都依赖于它，如常用的ReentrantLock/Semaphore/CountDownLatch...。
+```
+
+### ReentrantLock
+
+```
+
+```
+
+### CountDownLatch
+
+```
+
+```
+
+### CyclicBarrier
+
+
+
+### Semaphore
+
+```
+
+```
+
+### 线程间通信方式
+
+```
+
+```
+
