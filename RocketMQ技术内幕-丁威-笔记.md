@@ -222,7 +222,7 @@ tools：
   
   2.查找主题路由信息tryToFindTopicPublishInfo->
   
-  3.感觉路由信息选择消息队列
+  3.根据路由信息选择消息队列
   MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);->
   
   4.钩子函数检测
@@ -544,7 +544,7 @@ DefaultMessageStore{
   ProcessQuque处理的消息条数超过threshold=1000就触发流控，放弃本次拉任务，放入延迟任务中
   
   pullMessageService.pullMessage(pullRequest);>
-  efaultMQPushConsumerImpl.pullMessage(pullRequest)->
+  defaultMQPushConsumerImpl.pullMessage(pullRequest)->
   pullKernelImpl->
   mQClientAPIImpl.RequestCode.PULL_MESSAGE 同步 异步两种->
   
