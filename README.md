@@ -24,7 +24,7 @@
 
 ### 锁的优化有哪些
 
-### 死锁的原因，如何避免
+### [死锁的原因，如何避免](https://github.com/guogailee/learn-note/blob/master/%E6%AD%BB%E9%94%81.md)
 
 ## 容器
 
