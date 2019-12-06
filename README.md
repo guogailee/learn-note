@@ -46,6 +46,16 @@
 
 ### ConcurrentHashMap
 
+# JVM
+
+## JVM内存模型
+
+## 类加载机制
+
+## 内存泄露 vs 内存溢出
+
+## 如何进行JVM调优
+
 # [设计模式](https://github.com/guogailee/learn-note/blob/master/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F.md)
 
 # Spring
@@ -81,6 +91,10 @@
 ### [常见算法题和最佳解答思路](https://github.com/guogailee/learn-note/blob/master/%E5%B8%B8%E8%A7%81%E7%AE%97%E6%B3%95%E9%A2%98%E5%92%8C%E6%9C%80%E4%BD%B3%E8%A7%A3%E7%AD%94%E6%80%9D%E8%B7%AF.md)
 
 # 网络
+
+## OSI七层结构，每层结构的作用
+
+## TCP三次握手
 
 # 数据库
 
