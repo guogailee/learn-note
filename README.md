@@ -1,6 +1,6 @@
 # Java基础
 
-## Object类
+## [Object类](https://github.com/guogailee/learn-note/blob/master/Object%E7%B1%BB.md)
 
 ## 并发包
 
@@ -52,7 +52,7 @@
 
 ## 类加载机制
 
-## 内存泄露 vs 内存溢出
+## [内存泄露 vs 内存溢出](https://github.com/guogailee/learn-note/blob/master/%E5%86%85%E5%AD%98%E6%B3%84%E9%9C%B2vs%E5%86%85%E5%AD%98%E6%BA%A2%E5%87%BA.md)
 
 ## 如何进行JVM调优
 
