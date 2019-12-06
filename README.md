@@ -6,7 +6,7 @@
 
 ### AtomicInteger
 
-### CAS的实现原理、CAS有哪些问题以及如何解决
+### [CAS的实现原理、CAS有哪些问题以及如何解决](https://github.com/guogailee/learn-note/blob/master/CAS.md)
 
 ### AbstractQueuedSynchronizer-AQS
 
@@ -24,7 +24,7 @@
 
 ### Synchronized
 
-### 锁的优化有哪些
+### [锁的优化有哪些](https://github.com/guogailee/learn-note/blob/master/%E9%94%81%E4%BC%98%E5%8C%96.md)
 
 ### [死锁的原因，如何避免](https://github.com/guogailee/learn-note/blob/master/%E6%AD%BB%E9%94%81.md)
 
