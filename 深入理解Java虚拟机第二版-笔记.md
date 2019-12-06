@@ -565,7 +565,13 @@ Full GC：停顿收集
 - 老年代GC
 
   ```
-  Major GC/Full GC
+  Major GC
+  ```
+  
+- Full GC
+
+  ```
+  对整个堆
   ```
 
 ## JDK命令行工具
