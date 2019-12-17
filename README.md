@@ -86,9 +86,9 @@
 
 ## [分布式事务](https://github.com/guogailee/learn-note/blob/master/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1.md)
 
-## 分布式ID
-
 ## [分库分表](https://github.com/guogailee/learn-note/blob/master/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8.md)
+
+## 如何保证分布式系统的高可用
 
 ## 分布式幂等
 
