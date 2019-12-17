@@ -88,7 +88,7 @@
 
 ## 分布式ID
 
-## 分库分表
+## [分库分表](https://github.com/guogailee/learn-note/blob/master/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8.md)
 
 ## 分布式幂等
 
