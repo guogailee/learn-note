@@ -802,4 +802,18 @@ ComsumeMessageService有两个实现类：并发 vs 有序
   创建订单，订单的信息要同步给索引，同步给sass中心，用mq异步，一次发送，多个需要消费该消息的系统监听消费就好。创建订单的系统不需要依赖其他业务系统。
   ```
 
-  
+
+## 设计亮点
+
+### 读写锁
+
+```
+NameServe 与 Broker 保持长连接， Broker 状态存储在 brokerLiveTable 中， NameServer 每收到一个心跳包，将更新 brokerLiveTable 中关于 Broker 的状态信息以及路 由表( topicQueueTable、 brokerAddrTable、 brokerLiveTable、 filterServerTable)。 更新上述 路由表( HashTable)使用了锁粒度较少的读写锁，允许多个消息发送者( Producer)并发读， 保证消息发送时的高并发 。 但同一时刻 NameServer 只处理一个 Broker 心跳包，多个心跳 包请求串行执行 。 这也是读写锁经典使用场景
+```
+
+## 消息发送高可用
+
+```
+消息发送高可用主要通过两个手段 : 重试与 Broker规避。 Brok巳r规避就是在一次消息 发送过程中发现错误，在某一时间段内，消息生产者不会选择该 Broker(消息服务器)上的 消息队列，提高发送消息的成功 率 。
+```
+
