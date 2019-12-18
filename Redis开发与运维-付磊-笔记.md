@@ -190,6 +190,8 @@ del key1 key2 key3
 
 ```
 expire key seconds
+
+expire hello 10 设置hello 10秒后过期
 ```
 
 ### 查看键剩余过期时间
@@ -210,3 +212,22 @@ type key
 ```
 
 ## 数据结构和内部编码
+
+# 小功能大用处
+
+## 慢查询分析
+
+```
+slowlog-log-slower-than 20000(微妙) 慢查询日志阈值
+slowlog-max-len 慢查询日志最大存储多少条
+```
+
+### 慢查询日志文件结构
+
+```
+id
+发生时间戳
+命令耗时
+执行命令和参数
+```
+
